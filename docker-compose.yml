@@ -1,0 +1,26 @@
+# For running on a server later. Put secrets in a .env file next to this one:
+#   PERMIT_ALERTS_DASHBOARD_PASSWORD=...   (required when the dashboard is reachable from the internet)
+#   PERMIT_ALERTS_DISCORD_TOKEN=...
+#   PERMIT_ALERTS_DISCORD_GUILD_ID=...
+#   POSTGRES_PASSWORD=...
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PERMIT_ALERTS_DATABASE_URL: postgresql+psycopg://permit:${POSTGRES_PASSWORD}@db:5432/permit
+    ports:
+      - "8645:8645"
+    depends_on: [db]
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: permit
+      POSTGRES_DB: permit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

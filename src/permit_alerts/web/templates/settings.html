@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Settings</h1>
+<div class="card">
+  <p class="small muted">Saved to <code>{{ data_dir }}/.env</code> on this computer. Leave a secret blank to keep the current value.</p>
+  {% if bot_invite %}<p class="small">Add the bot to your server: <a href="{{ bot_invite }}" target="_blank">bot invite link</a></p>{% endif %}
+  <form method="post" action="/settings">
+    {% for key, label, secret in fields %}
+      <label for="{{ key }}">{{ label }}</label>
+      {% if secret %}<input id="{{ key }}" name="{{ key }}" type="password" placeholder="{{ 'saved' if values[key] else 'not set' }}" autocomplete="off">
+      {% else %}<input id="{{ key }}" name="{{ key }}" value="{{ values[key] if values[key] else '' }}">{% endif %}
+    {% endfor %}
+    <div class="help">See the README for how to create the Discord bot and a Gmail app password.</div>
+    <p><button class="btn primary">Save settings</button></p>
+  </form>
+</div>
+{% endblock %}

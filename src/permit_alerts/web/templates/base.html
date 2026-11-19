@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Permit Alerts{% endblock %}</title>
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--ink:#1d2320;--muted:#66706b;--line:#dfe3dc;--accent:#2e6b4f;--accent-ink:#fff;--warn:#a15c00;--bad:#b3261e;--good:#2e7d32}
+@media (prefers-color-scheme: dark){:root{--bg:#141815;--card:#1d221f;--ink:#e6ebe7;--muted:#9aa49f;--line:#2f3632;--accent:#6fbf94;--accent-ink:#0f1411;--warn:#e0a13a;--bad:#f2867e;--good:#7fcf86}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line)}
+.nav{max-width:1100px;margin:auto;display:flex;gap:18px;align-items:center;padding:12px 16px;flex-wrap:wrap}
+.nav a{color:var(--muted);text-decoration:none;font-weight:500}.nav a.brand{color:var(--ink);font-weight:700;margin-right:12px}
+.nav .status{margin-left:auto;font-size:13px;color:var(--muted)}
+main{max-width:1100px;margin:auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 16px}h2{font-size:17px;margin:24px 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}.small{font-size:13px}
+.btn{display:inline-block;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.btn.danger{color:var(--bad)}
+.inline{display:inline}
+.flash{padding:10px 14px;border-radius:8px;margin-bottom:16px;border:1px solid var(--line);background:var(--card)}
+.flash.error{border-color:var(--bad);color:var(--bad)}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid var(--line)}
+.pill.on{color:var(--good);border-color:var(--good)}.pill.off{color:var(--muted)}.pill.err{color:var(--bad);border-color:var(--bad)}
+label{display:block;font-weight:600;margin:12px 0 4px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:110px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.help{font-size:13px;color:var(--muted);margin-top:4px}
+.table-wrap{overflow-x:auto}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<header><nav class="nav">
+  <a class="brand" href="/">⛰ Permit Alerts</a>
+  <a href="/">Searches</a><a href="/groups">Groups</a><a href="/trends">Trends</a><a href="/settings">Settings</a>
+  <span class="status">Discord: {{ discord_status }} · Email: {{ "on" if email_on else "off" }}</span>
+</nav></header>
+<main>
+{% if msg %}<div class="flash {{ kind }}">{{ msg }}</div>{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

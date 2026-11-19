@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block head %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+<h1>Trends</h1>
+<form method="get" class="card" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+  <div style="flex:1;min-width:220px"><label for="facility">Place</label>
+  <select id="facility" name="facility" onchange="this.form.submit()">
+    <option value="">All places</option>
+    {% for fid, name, n in facilities %}<option value="{{ fid }}" {% if fid == facility %}selected{% endif %}>{{ name }} ({{ n }})</option>{% endfor %}
+  </select></div>
+</form>
+<div class="row">
+  <div class="card"><div class="muted small">Openings logged</div><div style="font-size:26px;font-weight:700">{{ stats.total }}</div></div>
+  <div class="card"><div class="muted small">Typical time an opening stays open</div><div style="font-size:26px;font-weight:700">{{ stats.median_minutes_open if stats.median_minutes_open is not none else "–" }}{% if stats.median_minutes_open is not none %} min{% endif %}</div></div>
+  <div class="card"><div class="muted small">Typical days ahead of the trip</div><div style="font-size:26px;font-weight:700">{{ stats.median_lead_days if stats.median_lead_days is not none else "–" }}</div></div>
+</div>
+{% if stats.total == 0 %}<div class="card muted">No openings logged yet. Charts fill in as searches run (openings already open when a search started aren't counted).</div>{% endif %}
+<div class="row" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+  <div class="card"><h2 style="margin-top:0">Openings per day</h2><canvas id="c1"></canvas></div>
+  <div class="card"><h2 style="margin-top:0">Time of day they appear</h2><canvas id="c2"></canvas></div>
+  <div class="card"><h2 style="margin-top:0">Day of week they appear</h2><canvas id="c3"></canvas></div>
+  <div class="card"><h2 style="margin-top:0">Trip month of the opening</h2><canvas id="c4"></canvas></div>
+</div>
+<script>
+const chart = {{ chart|tojson }};
+if (window.Chart) {
+  const css = getComputedStyle(document.documentElement);
+  const color = css.getPropertyValue('--accent').trim(), ink = css.getPropertyValue('--muted').trim(), grid = css.getPropertyValue('--line').trim();
+  Chart.defaults.color = ink; Chart.defaults.borderColor = grid;
+  const mk = (id, d, type='bar') => new Chart(document.getElementById(id), {type, data:{labels:d.labels, datasets:[{data:d.values, backgroundColor:color, borderColor:color, borderRadius:3}]},
+    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}}}});
+  mk('c1', chart.days, chart.days.labels.length > 20 ? 'line' : 'bar'); mk('c2', chart.hours); mk('c3', chart.weekdays); mk('c4', chart.trip_months);
+}
+</script>
+{% endblock %}
