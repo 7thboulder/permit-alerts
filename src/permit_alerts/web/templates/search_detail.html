@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ search.name }}</h1>
+<div class="card">
+  <div class="row">
+    <div><div class="muted small">Dates</div>{{ search.start_date.strftime("%b %d") }} – {{ search.end_date.strftime("%b %d, %Y") }}</div>
+    <div><div class="muted small">Group</div>{{ search.group.name }} ({{ search.group.members|length }} people)</div>
+    <div><div class="muted small">Checks</div>every {{ search.interval_seconds }}s{% if search.last_checked_at %}, last {{ ((now - search.last_checked_at).total_seconds())|int }}s ago{% endif %}</div>
+    <div><div class="muted small">Filters</div>{% if search.group_size %}group of {{ search.group_size }}{% else %}any group size{% endif %}{% if search.min_nights > 1 %}, {{ search.min_nights }}+ nights{% endif %}</div>
+  </div>
+  <div class="small muted" style="margin-top:10px">Watching: {% for t in search.targets %}<a href="https://www.recreation.gov/{{ 'permits' if t.kind == 'permit' else 'camping/campgrounds' }}/{{ t.facility_id }}" target="_blank">{{ t.name or t.facility_id }}</a>{% if t.only_ids %} (only {{ t.only_ids|join(", ") }}){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+  {% if search.last_error %}<p style="color:var(--bad)">{{ search.last_error }}</p>{% endif %}
+  <p><a class="btn" href="/searches/{{ search.id }}/edit">Edit</a> <a class="btn" href="/trends">Trends</a></p>
+</div>
+<h2>Opening log</h2>
+<div class="card table-wrap">
+{% if not openings %}<p class="muted">No openings logged yet.</p>{% else %}
+<table>
+  <tr><th>Seen (UTC)</th><th>Where</th><th>Date</th><th>Left</th><th>Alerted</th><th>Closed</th></tr>
+  {% for o in openings %}
+  <tr>
+    <td class="small">{{ o.opened_at.strftime("%b %d %H:%M:%S") }}{% if o.on_first_check %}<div class="muted">open at start</div>{% endif %}</td>
+    <td class="small">{{ o.facility_name }} · {{ o.slot_label }}</td>
+    <td class="small">{{ o.date.strftime("%a %b %d, %Y") }}{% if o.kind == "campground" %} · {{ o.nights }}n{% endif %}</td>
+    <td class="small">{% if o.remaining >= 9999 %}no limit{% else %}{{ o.remaining }}{% if o.total %}/{{ o.total }}{% endif %}{% endif %}</td>
+    <td class="small">{{ o.alerted_at.strftime("%H:%M:%S") if o.alerted_at else "pending" }}{% if o.reminded_at and not o.on_first_check %}<div class="muted">reminder {{ o.reminded_at.strftime("%H:%M") }}</div>{% endif %}</td>
+    <td class="small">{% if o.closed_at %}{{ o.closed_at.strftime("%b %d %H:%M") }}{% else %}<a href="{{ o.booking_url }}" target="_blank">still open</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>{% endif %}
+</div>
+{% endblock %}

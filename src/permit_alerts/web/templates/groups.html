@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Groups</h1>
+{% if invite %}<div class="card">Invite link for your Discord server, to send to group members: <a href="{{ invite }}" target="_blank">{{ invite }}</a>
+<div class="help">After they join, save their group again so they get access to its private channel.</div></div>{% endif %}
+{% for g in groups %}
+<div class="card">
+  <form method="post" action="/groups/save">
+    <input type="hidden" name="id" value="{{ g.id }}">
+    <label>Group name</label><input name="name" value="{{ g.name }}">
+    <label>Members, one per line: name, phone, email, Discord username</label>
+    <textarea name="members">{{ members_text(g) }}</textarea>
+    <div class="help">{% if g.discord_channel_id %}Has a private Discord channel.{% else %}No Discord channel yet (one is created when Discord is connected and you save).{% endif %}
+      Used by {{ g.searches|length }} search{{ "es" if g.searches|length != 1 }}.</div>
+    <p><button class="btn primary">Save</button></p>
+  </form>
+  <form class="inline" method="post" action="/groups/{{ g.id }}/test"><button class="btn">Send test alert</button></form>
+  <form class="inline" method="post" action="/groups/{{ g.id }}/delete" onsubmit="return confirm('Delete this group?')"><button class="btn danger">Delete group</button></form>
+</div>
+{% endfor %}
+<div class="card">
+  <form method="post" action="/groups/save">
+    <h2 style="margin-top:0">New group</h2>
+    <label>Group name</label><input name="name" placeholder="e.g. Raft crew">
+    <label>Members, one per line: name, phone, email, Discord username</label>
+    <textarea name="members"></textarea>
+    <p><button class="btn primary">Create group</button></p>
+  </form>
+</div>
+{% endblock %}

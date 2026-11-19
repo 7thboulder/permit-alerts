@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ "Edit search" if search else "New search" }}</h1>
+<form method="post" action="/searches/save" id="f">
+<input type="hidden" name="id" value="{{ search.id if search else '' }}">
+<div class="card">
+  <label for="name">Search name</label>
+  <input id="name" name="name" value="{{ search.name if search else '' }}" placeholder="e.g. Ruby Horsethief July trip">
+
+  <label>Permits and campgrounds</label>
+  <div style="display:flex;gap:8px">
+    <select id="kind" style="max-width:150px"><option value="">Any</option><option value="permit">Permits</option><option value="campground">Campgrounds</option></select>
+    <input id="q" placeholder="Search Recreation.gov, e.g. Westwater, Lodore, Watchman" autocomplete="off">
+  </div>
+  <div id="results" class="small"></div>
+  <div class="help">Pick one or more. Optional: limit a permit to certain launch points or a campground to certain campsite IDs.</div>
+  <div class="table-wrap"><table id="targets" style="margin-top:8px">
+    <tr><th>Watching</th><th>Type</th><th>Only these IDs (optional)</th><th></th></tr>
+  </table></div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div><label for="start_date">Earliest date</label><input type="date" id="start_date" name="start_date" value="{{ defaults.start }}" required></div>
+    <div><label for="end_date">Latest date</label><input type="date" id="end_date" name="end_date" value="{{ defaults.end }}" required></div>
+    <div><label for="interval_seconds">Check every (seconds)</label><input type="number" id="interval_seconds" name="interval_seconds" min="{{ min_interval }}" value="{{ defaults.interval }}"></div>
+  </div>
+  <div class="help">Only openings whose launch date or night falls between these dates trigger alerts.</div>
+  <div class="row">
+    <div><label for="group_size">Group size (optional)</label><input type="number" id="group_size" name="group_size" min="1" value="{{ search.group_size if search and search.group_size else '' }}">
+      <div class="help">Skips campsites too small for the group, and trailhead quotas with too few spots.</div></div>
+    <div><label for="min_nights">Minimum nights in a row (campgrounds)</label><input type="number" id="min_nights" name="min_nights" min="1" value="{{ search.min_nights if search else 1 }}"></div>
+  </div>
+</div>
+
+<div class="card">
+  <label for="group_id">Who gets alerted</label>
+  <select id="group_id" name="group_id">
+    <option value="new">New group…</option>
+    {% for g in groups %}<option value="{{ g.id }}" {% if search and search.group_id == g.id %}selected{% endif %}>{{ g.name }} ({{ g.members|length }} people)</option>{% endfor %}
+  </select>
+  <div id="newgroup">
+    <label for="group_name">Group name</label>
+    <input id="group_name" name="group_name" placeholder="e.g. Raft crew">
+    <label for="members">Members, one per line: name, phone, email, Discord username</label>
+    <textarea id="members" name="members" placeholder="Ezra, 970-555-0100, ezra@example.com, ezra_rafts&#10;Sam, , sam@example.com, samh"></textarea>
+    <div class="help">Discord usernames get access to the group's private alert channel. Emails get email alerts. Phone numbers are saved for text alerts later.</div>
+  </div>
+</div>
+<button class="btn primary">{{ "Save search" if search else "Start search" }}</button>
+<a class="btn" href="/">Cancel</a>
+</form>
+
+<script>
+const targets = {{ targets|tojson }};
+const table = document.getElementById('targets');
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function addTarget(t){
+  if ([...table.querySelectorAll('input[name=target_id]')].some(i=>i.value===t.id)) return;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${esc(t.name||t.id)}<div class="small muted">ID ${esc(t.id)}</div>
+    <input type="hidden" name="target_kind" value="${esc(t.kind)}"><input type="hidden" name="target_id" value="${esc(t.id)}">
+    <input type="hidden" name="target_name" value="${esc(t.name||'')}"></td>
+    <td class="small">${t.kind==='permit'?'Permit':'Campground'}</td>
+    <td><input name="target_only" value="${esc(t.only||'')}" placeholder="all"><div class="small muted units"></div></td>
+    <td><button type="button" class="btn danger">Remove</button></td>`;
+  tr.querySelector('button').onclick=()=>tr.remove();
+  table.appendChild(tr);
+  if (t.kind==='permit') fetch(`/api/units?kind=permit&id=${encodeURIComponent(t.id)}`).then(r=>r.json()).then(u=>{
+    const keys = Object.keys(u||{}); if (!keys.length || u.error) return;
+    tr.querySelector('.units').innerHTML = 'IDs: ' + keys.slice(0,40).map(k=>`${esc(k)} = ${esc(u[k])}`).join(' · ');
+  }).catch(()=>{});
+}
+targets.forEach(addTarget);
+let timer;
+document.getElementById('q').addEventListener('input', e=>{
+  clearTimeout(timer);
+  const q = e.target.value.trim(); const kind = document.getElementById('kind').value;
+  if (q.length<2){document.getElementById('results').innerHTML='';return;}
+  timer = setTimeout(async ()=>{
+    const r = await fetch(`/api/find?q=${encodeURIComponent(q)}${kind?`&kind=${kind}`:''}`);
+    const data = await r.json();
+    const box = document.getElementById('results');
+    if (!Array.isArray(data)){box.textContent = data.error||'Search failed'; return;}
+    box.innerHTML = data.map((d,i)=>`<div style="padding:4px 0"><button type="button" class="btn" data-i="${i}">Add</button>
+      ${d.kind==='permit'?'🛶 Permit':'⛺ Campground'}: <b>${esc(d.name)}</b> <span class="muted">${esc(d.parent)} ${esc(d.state)}</span></div>`).join('') || '<span class="muted">No matches</span>';
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{addTarget(data[b.dataset.i]);});
+  }, 300);
+});
+const sel = document.getElementById('group_id');
+function syncGroup(){document.getElementById('newgroup').style.display = sel.value==='new'?'block':'none'}
+sel.onchange = syncGroup; syncGroup();
+</script>
+{% endblock %}

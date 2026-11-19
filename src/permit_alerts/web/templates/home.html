@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+  <h1 style="margin:0">Searches</h1>
+  <a class="btn primary" href="/searches/new" style="margin-left:auto">New search</a>
+</div>
+<div class="card table-wrap">
+{% if not searches %}
+  <p class="muted">No searches yet. Create one to start watching Recreation.gov.</p>
+{% else %}
+<table>
+  <tr><th>Search</th><th>Watching</th><th>Dates</th><th>Group</th><th>Status</th><th>Open now</th><th>New openings</th><th></th></tr>
+  {% for s in searches %}
+  <tr>
+    <td><a href="/searches/{{ s.id }}"><b>{{ s.name }}</b></a><div class="small muted">every {{ s.interval_seconds }}s</div></td>
+    <td class="small">{% for t in s.targets %}{{ t.name or t.facility_id }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+    <td class="small">{{ s.start_date.strftime("%b %d") }} – {{ s.end_date.strftime("%b %d, %Y") }}</td>
+    <td class="small">{{ s.group.name }}</td>
+    <td class="small">
+      {% if not s.active %}<span class="pill off">paused</span>
+      {% elif s.last_error %}<span class="pill err" title="{{ s.last_error }}">error</span>
+      {% else %}<span class="pill on">running</span>{% endif %}
+      {% if s.last_checked_at %}<div class="muted">checked {{ ((now - s.last_checked_at).total_seconds())|int }}s ago</div>{% endif %}
+      {% if s.last_error %}<div class="small" style="color:var(--bad)">{{ s.last_error[:140] }}</div>{% endif %}
+    </td>
+    <td>{{ open_now.get(s.id, 0) }}</td>
+    <td>{{ counts.get(s.id, 0) }}</td>
+    <td style="white-space:nowrap">
+      <a class="btn" href="/searches/{{ s.id }}/edit">Edit</a>
+      <form class="inline" method="post" action="/searches/{{ s.id }}/toggle"><button class="btn">{{ "Pause" if s.active else "Resume" }}</button></form>
+      <form class="inline" method="post" action="/searches/{{ s.id }}/delete" onsubmit="return confirm('Delete this search and its history?')"><button class="btn danger">Delete</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+</div>
+<h2>Latest openings</h2>
+<div class="card table-wrap">
+{% if not recent %}<p class="muted">Nothing has opened yet. Openings appear here and in your Discord channel as they happen.</p>
+{% else %}
+<table>
+  <tr><th>Seen</th><th>Search</th><th>Where</th><th>Date</th><th>Status</th></tr>
+  {% for o in recent %}
+  <tr>
+    <td class="small">{{ o.opened_at.strftime("%b %d %H:%M") }} UTC</td>
+    <td class="small">{{ names.get(o.search_id, "") }}</td>
+    <td class="small">{{ o.facility_name }} · {{ o.slot_label }}</td>
+    <td class="small">{{ o.date.strftime("%a %b %d") }}{% if o.kind == "campground" %} · {{ o.nights }} night{{ "s" if o.nights != 1 }}{% endif %}</td>
+    <td class="small">{% if o.closed_at %}<span class="muted">gone after {{ ((o.closed_at - o.opened_at).total_seconds() / 60)|round(1) }} min</span>{% else %}<a href="{{ o.booking_url }}" target="_blank">open, book now</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+</div>
+{% endblock %}
